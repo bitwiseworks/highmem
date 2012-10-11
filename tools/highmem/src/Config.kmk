@@ -1,0 +1,12 @@
+#
+# High Mem Code Marking
+#
+# Copyright (C) 2012 Yuri Dario <yd@os2power.com>
+# See LICENSE-2.0.txt for license details.
+#
+# edit this file to change version numbering
+# in bldlevel informations
+#
+VERSION	= 20120830
+BUILD	= os2
+TOOLKIT = f:/usr/dev/toolkit452

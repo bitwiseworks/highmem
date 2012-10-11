@@ -1,0 +1,50 @@
+#
+# High Mem Code Marking
+#
+# Copyright (C) 2012 Yuri Dario <yd@os2power.com>
+# See LICENSE-2.0.txt for license details.
+#
+# please define (as env variables or kmk command line) the following variables before starting:
+# BUILD_PLATFORM = os2
+# BUILD_TYPE = release|debug
+#
+# Edit Config.kmk to match your installation.
+#
+
+DEPTH = ..
+
+TOOL = GCC3
+
+# program
+PROGRAMS = highmem highmem_g
+
+highmem_SOURCES = highmem.c
+highmem_CFLAGS = -s -O2 -I/@unixroot/usr/include -I$(TOOLKIT)/h
+highmem_LDFLAGS = -s -Zomf -Zmap -Zbin-files -Zhigh-mem -Zargs-wild -Zargs-resp
+highmem_LIBS =
+highmem_DEFS =
+highmem_INCS =
+
+highmem_g_SOURCES = highmem.c
+highmem_g_CFLAGS =  -g -O0 -DDEBUG -I/@unixroot/usr/include -I$(TOOLKIT)/h
+highmem_g_LDFLAGS = -g -Zomf -Zmap -Zbin-files -Zhigh-mem -Zargs-wild -Zargs-resp
+highmem_g_LIBS =
+highmem_g_DEFS =
+highmem_g_INCS =
+
+# packaging stuffs
+PACKAGE_NAME = highmem-$(subst .,_,$(VERSION))-$(BUILD).zip
+PACKING += $(PATH_ROOT)/dist/$(PACKAGE_NAME)
+OTHER_CLEAN += $(PATH_ROOT)/dist/$(PACKAGE_NAME) 
+
+# now include standard code
+include $(PATH_KBUILD)/rules.kMk
+
+# here follows standard gnu make inference rules
+
+# final: zip all files!
+$(PATH_ROOT)/dist/$(PACKAGE_NAME): $(INSTARGET_highmem) $(INSTARGET_highmem_g)
+	$(call MSG_L1,Packing $@)
+	$(QUIET)$(MKDIR) -p $(PATH_ROOT)/dist                              
+	$(QUIET)$(REDIRECT) -C $(DEPTH) -- zip -9q $@ src/* -x src/*~ 
+	$(QUIET)$(REDIRECT) -C $(PATH_INS) -- zip -9q $@ lib/* bin/* include/*
