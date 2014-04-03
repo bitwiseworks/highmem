@@ -9,4 +9,4 @@
 #
 VERSION	= 20120830
 BUILD	= os2
-TOOLKIT = f:/usr/dev/toolkit452
+TOOLKIT = d:/usr/dev/toolkit452

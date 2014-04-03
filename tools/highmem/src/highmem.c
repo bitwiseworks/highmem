@@ -1,6 +1,6 @@
 /*
 
-   Copyright 2012 Yuri Dario <yd@os2power.com>
+   Copyright 2012-14 Yuri Dario <yd@os2power.com>
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ int mark( char* pszModule)
 	}
 
 	if (!quiet)
-		printf("Processing module : %s\n", pszModule);
+		printf("Processing module : %s", pszModule);
 
 	bModified = (BOOL)FALSE;
 	for(ulIndex = (ULONG)0, pxObjTable = (struct o32_obj*)&((PUCHAR)pxLXHeader)[pxLXHeader->e32_objtab];
@@ -150,17 +150,18 @@ int mark( char* pszModule)
 		ulIndex++, pxObjTable++)
 	{
 		if (!quiet) {
-			printf(" object %u : base 0x%08x, size 0x%08x, flags 0x%08x, %s, %shimem\n",
-				(unsigned int)ulIndex,
-				(unsigned int)pxObjTable->o32_base,
-				(unsigned int)pxObjTable->o32_size,
-				(unsigned int)pxObjTable->o32_flags,
-				(pxObjTable->o32_flags & OBJEXEC) != (unsigned long)0 ? "executable" : "data",
-				(pxObjTable->o32_flags & OBJHIMEM) != (unsigned long)0 ? "" : "!");
-			if (verbose)
-				printf("  %sreadable, %swriteable, %sexecutable, %sresource, %sdiscardable, %sshared,\n"
+			if (verbose > 0)
+				printf("\n object %u : base 0x%08x, size 0x%08x, flags 0x%08x, %s, %shimem",
+					(unsigned int)ulIndex,
+					(unsigned int)pxObjTable->o32_base,
+					(unsigned int)pxObjTable->o32_size,
+					(unsigned int)pxObjTable->o32_flags,
+					(pxObjTable->o32_flags & OBJEXEC) != (unsigned long)0 ? "executable" : "data",
+					(pxObjTable->o32_flags & OBJHIMEM) != (unsigned long)0 ? "" : "!");
+			if (verbose > 1)
+				printf("\n  %sreadable, %swriteable, %sexecutable, %sresource, %sdiscardable, %sshared,\n"
 					"  %spreload, %sinvalid, %s, %s16:16 alias, %sconforming,\n"
-					"  %s32bit, %sIOPL\n",
+					"  %s32bit, %sIOPL",
 					(pxObjTable->o32_flags & OBJREAD) != (unsigned long)0 ? "" : "!",
 					(pxObjTable->o32_flags & OBJWRITE) != (unsigned long)0 ? "" : "!",
 					(pxObjTable->o32_flags & OBJEXEC) != (unsigned long)0 ? "" : "!",
@@ -181,16 +182,19 @@ int mark( char* pszModule)
 			pxObjTable->o32_flags = (pxObjTable->o32_flags & ulModifyMask) ^ ulModifyPattern;
 			
 			if (!quiet) {
-				printf("  MODIFIED: base 0x%08x, size 0x%08x, flags 0x%08x, %s, %shimem\n",
-					(unsigned int)pxObjTable->o32_base,
-					(unsigned int)pxObjTable->o32_size,
-					(unsigned int)pxObjTable->o32_flags,
-					(pxObjTable->o32_flags & OBJEXEC) != (unsigned long)0 ? "executable" : "data",
-					(pxObjTable->o32_flags & OBJHIMEM) != (unsigned long)0 ? "" : "!");
-				if (verbose)
-					printf("  %sreadable, %swriteable, %sexecutable, %sresource, %sdiscardable, %sshared,\n"
+				if (verbose == 0)
+					printf("  MODIFIED");
+				if (verbose > 0)
+					printf("\n  MODIFIED: base 0x%08x, size 0x%08x, flags 0x%08x, %s, %shimem",
+						(unsigned int)pxObjTable->o32_base,
+						(unsigned int)pxObjTable->o32_size,
+						(unsigned int)pxObjTable->o32_flags,
+						(pxObjTable->o32_flags & OBJEXEC) != (unsigned long)0 ? "executable" : "data",
+						(pxObjTable->o32_flags & OBJHIMEM) != (unsigned long)0 ? "" : "!");
+				if (verbose > 1)
+					printf("\n  %sreadable, %swriteable, %sexecutable, %sresource, %sdiscardable, %sshared,\n"
 						"  %spreload, %sinvalid, %s, %s16:16 alias, %sconforming,\n"
-						"  %s32bit, %sIOPL\n",
+						"  %s32bit, %sIOPL",
 						(pxObjTable->o32_flags & OBJREAD) != (unsigned long)0 ? "" : "!",
 						(pxObjTable->o32_flags & OBJWRITE) != (unsigned long)0 ? "" : "!",
 						(pxObjTable->o32_flags & OBJEXEC) != (unsigned long)0 ? "" : "!",
@@ -208,6 +212,9 @@ int mark( char* pszModule)
 			bModified = (BOOL)TRUE;
 		}
 	}
+
+	// new line
+	printf( "\n");
 
 	if (bModified == (BOOL)FALSE) {
 		free(pvBuffer);
@@ -255,7 +262,7 @@ void usage( void)
 	"Without options, current DLL object information are dumped.\n"
 	"Options:\n"
 	" --quiet   -q  quiets (no message)\n"
-	" --verbose -v  verbose output\n"
+	" --verbose -v  verbose output (-v -v even more verbose)\n"
 	" --code    -c  marks pure 32bit code objects as 'loading above 512MB'\n"
 	" --data    -d  marks pure 32bit data objects as so\n"
 	" --both    -b  marks both of pure 32bit code and data objects\n"
@@ -288,7 +295,7 @@ int main(int argc, char* argv[])
 			quiet = 1;
 			break;
 		case 'v':
-			verbose = 1;
+			verbose++;
 			break;
 		case 'c':
 			ulCheckMask = OBJEXEC | OBJRSRC | OBJINVALID | OBJALIAS16 | OBJBIGDEF | OBJHIMEM;
