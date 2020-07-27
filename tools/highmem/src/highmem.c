@@ -1,6 +1,6 @@
 /*
 
-   Copyright 2012-14 Yuri Dario <yd@os2power.com>
+   Copyright 2012-20 Yuri Dario <yd@os2power.com>
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 #include <os2.h>
 
 #define FOR_EXEHDR 1
-#include <exe386.h>
+#include <os2tk45/exe386.h>
 #define OBJHIMEM 0x00010000L  /* Object is loaded above 512MB if available */
 
 #include "getopt.h"
@@ -99,6 +99,12 @@ int mark( char* pszModule)
 	}
 
 	rc = DosQueryFileInfo( hfModule, FIL_STANDARD, (PVOID)&xfs3, sizeof(xfs3));
+	if (rc) {
+		printf("Error: DosQueryFileInfo failure, rc=%d.\n", rc);
+		DosClose(hfModule);
+		return -1;
+	}
+
 	pvBuffer = malloc( xfs3.cbFile);
 	if (!pvBuffer) {
 		printf("Error: not enough memory, rc=%d.\n", rc);
@@ -254,8 +260,8 @@ void usage( void)
 {
 	(void)printf("\n"
 	"HighMem, a LX format 32bit DLL module 'loading above 512MB' marking utility,\n"
-	"Version 1.0.0\n"
-	"(C) 2012 Yuri Dario <yd@os2power.com>.\n"
+	"Version 1.0.2\n"
+	"(C) 2012-20 Yuri Dario <yd@os2power.com>.\n"
 	"    Partially based on ABOVE512 (C) 2004 Takayuki 'January June' Suwa.\n"
 	"\n"
 	"usage: HIGHMEM [-options] {DLL module file} ...\n"
