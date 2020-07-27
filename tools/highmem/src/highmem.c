@@ -83,13 +83,13 @@ int mark( char* pszModule)
 	BOOL bModified;
 	struct o32_obj* pxObjTable;
 	static const PSZ apszObjectTypes[] = {"swappable", "permanent", "resident", "contiguous", "long lockable", "", "swappable", ""};
-	ULONG ulIndex;
+	ULONG ulIndex, lLXOffset, ulExtraSize;
 
 	rc = DosOpen(pszModule, &hfModule, &ulWork, (ULONG)0, FILE_NORMAL,
 			OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
-			OPEN_FLAGS_FAIL_ON_ERROR | OPEN_FLAGS_SEQUENTIAL 
-				| OPEN_FLAGS_NOINHERIT | 
-				(ulCheckMask != 0 
+			OPEN_FLAGS_FAIL_ON_ERROR | OPEN_FLAGS_SEQUENTIAL
+				| OPEN_FLAGS_NOINHERIT |
+				(ulCheckMask != 0
 					? OPEN_SHARE_DENYREADWRITE | OPEN_ACCESS_READWRITE
 					: OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY),
 			(PEAOP2)NULL);
@@ -105,30 +105,37 @@ int mark( char* pszModule)
 		return -1;
 	}
 
-	pvBuffer = malloc( xfs3.cbFile);
+	pvBuffer = malloc(sizeof(struct e32_exe));
 	if (!pvBuffer) {
 		printf("Error: not enough memory, rc=%d.\n", rc);
 		return -1;
 	}
 
-	if((rc = DosRead( hfModule, pvBuffer, xfs3.cbFile, &ulWork)) != NO_ERROR ||
-	   ulWork != xfs3.cbFile)
+	if((rc = DosRead( hfModule, pvBuffer, sizeof(struct e32_exe), &ulWork)) != NO_ERROR ||
+	   ulWork != sizeof(struct e32_exe))
 	{
 		printf("Error: \"%s\" cannot be read, rc=%d.\n", pszModule, rc);
 		free(pvBuffer);
 		DosClose(hfModule);
 		return -1;
 	}
-	
+
+	lLXOffset = 0;
 	pxLXHeader = (struct e32_exe*)NULL;
 	switch(((PUSHORT)pvBuffer)[0])
 	{
 	case (USHORT)0x5a4d:  /* 'MZ' */
 		if(((struct StubHeader_t*)pvBuffer)->usRelOff >= (USHORT)sizeof(struct StubHeader_t))
 		{
-			pxLXHeader = (struct e32_exe*)&((PUCHAR)pvBuffer)[((struct StubHeader_t*)pvBuffer)->ulNewHeaderOff];
-			if(((PUSHORT)pxLXHeader)[0] != (USHORT)0x584c)  /* 'LX' */
-				pxLXHeader = (struct e32_exe*)NULL;
+			lLXOffset = (LONG)((struct StubHeader_t*)pvBuffer)->ulNewHeaderOff;
+			rc = DosSetFilePtr(hfModule, lLXOffset, FILE_BEGIN, &ulWork);
+			if (rc == NO_ERROR)
+				rc = DosRead(hfModule, pvBuffer, sizeof(struct e32_exe), &ulWork);
+			if (rc == NO_ERROR && ulWork == sizeof(struct e32_exe)) {
+				pxLXHeader = (struct e32_exe*)pvBuffer;
+				if(((PUSHORT)pxLXHeader)[0] != (USHORT)0x584c)  /* 'LX' */
+					pxLXHeader = (struct e32_exe*)NULL;
+			}
 		}
 		break;
 	case (USHORT)0x584c:  /* 'LX' */
@@ -139,9 +146,28 @@ int mark( char* pszModule)
 	   pxLXHeader->e32_level != E32LEVEL ||
 	   pxLXHeader->e32_cpu < E32CPU386 ||
 	   ((pxLXHeader->e32_mflags & (E32NOLOAD | E32MODMASK)) != E32MODDLL
-	    && (pxLXHeader->e32_mflags & (E32NOLOAD | E32MODMASK)) != E32MODEXE) ) {
+	    && (pxLXHeader->e32_mflags & (E32NOLOAD | E32MODMASK)) != E32MODEXE) ||
+	   pxLXHeader->e32_objtab < sizeof(struct e32_exe)) {
 		printf("Error: \"%s\" is not LX format 32bit EXE/DLL module.\n",
 					 pszModule);
+		free(pvBuffer);
+		DosClose(hfModule);
+		return -1;
+	}
+
+  /* Account for object table and read it in */
+  ulExtraSize = pxLXHeader->e32_objtab + sizeof(struct o32_obj) * pxLXHeader->e32_objcnt - sizeof(struct e32_exe);
+	pvBuffer = realloc(pvBuffer, sizeof(struct e32_exe) + ulExtraSize);
+	if (!pvBuffer) {
+		printf("Error: not enough memory, rc=%d.\n", rc);
+		DosClose(hfModule);
+		return -1;
+	}
+
+	if((rc = DosRead( hfModule, pvBuffer + sizeof(struct e32_exe), ulExtraSize, &ulWork)) != NO_ERROR ||
+	   ulWork != ulExtraSize)
+	{
+		printf("Error: \"%s\" cannot be read, rc=%d.\n", pszModule, rc);
 		free(pvBuffer);
 		DosClose(hfModule);
 		return -1;
@@ -186,7 +212,7 @@ int mark( char* pszModule)
 		if(((pxObjTable->o32_flags & ulCheckMask) ^ ulCheckPattern) == (unsigned long)0)
 		{
 			pxObjTable->o32_flags = (pxObjTable->o32_flags & ulModifyMask) ^ ulModifyPattern;
-			
+
 			if (!quiet) {
 				if (verbose == 0)
 					printf("  MODIFIED");
@@ -228,9 +254,9 @@ int mark( char* pszModule)
 		return 0;
 	}
 
-	rc = DosSetFilePtr(hfModule,  (LONG)0, FILE_BEGIN, &ulWork);
-	rc = DosWrite(hfModule, pvBuffer, xfs3.cbFile, &ulWork);
-	if (rc != NO_ERROR || ulWork != xfs3.cbFile) {
+	rc = DosSetFilePtr(hfModule, lLXOffset, FILE_BEGIN, &ulWork);
+	rc = DosWrite(hfModule, pvBuffer, sizeof(struct e32_exe) + ulExtraSize, &ulWork);
+	if (rc != NO_ERROR || ulWork != sizeof(struct e32_exe) + ulExtraSize) {
 		printf("Error: \"%s\" cannot be written, rc=%d.\n", pszModule, rc);
 		free(pvBuffer);
 		rc = DosClose(hfModule);
