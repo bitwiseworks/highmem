@@ -11,8 +11,6 @@
 # Edit Config.kmk to match your installation.
 #
 
-DEPTH = ..
-
 TOOL = GCC3
 
 # program
@@ -34,17 +32,17 @@ highmem_g_INCS =
 
 # packaging stuffs
 PACKAGE_NAME = highmem-$(subst .,_,$(VERSION))-$(BUILD).zip
-PACKING += $(PATH_ROOT)/dist/$(PACKAGE_NAME)
-OTHER_CLEAN += $(PATH_ROOT)/dist/$(PACKAGE_NAME) 
+PACKING += $(PATH_OUT)/dist/$(PACKAGE_NAME)
+OTHER_CLEAN += $(PATH_OUT)/dist/$(PACKAGE_NAME) 
 
 # now include standard code
-include $(PATH_KBUILD)/rules.kMk
+include $(PATH_KBUILD)/rules.kmk
 
 # here follows standard gnu make inference rules
 
 # final: zip all files!
-$(PATH_ROOT)/dist/$(PACKAGE_NAME): $(INSTARGET_highmem) $(INSTARGET_highmem_g)
+$(PATH_OUT)/dist/$(PACKAGE_NAME): $(INSTARGET_highmem) $(INSTARGET_highmem_g)
 	$(call MSG_L1,Packing $@)
-	$(QUIET)$(MKDIR) -p $(PATH_ROOT)/dist                              
-	$(QUIET)$(REDIRECT) -C $(DEPTH) -- zip -9q $@ src/* -x src/*~ 
+	$(QUIET)$(MKDIR) -p $(PATH_OUT)/dist
+	$(QUIET)$(REDIRECT) -C $(DEPTH) -- zip -9q $@ * -x out/ -x .git/
 	$(QUIET)$(REDIRECT) -C $(PATH_INS) -- zip -9q $@ lib/* bin/* include/*
