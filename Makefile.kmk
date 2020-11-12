@@ -13,22 +13,18 @@
 
 TOOL = GCC3
 
+CFLAGS ?= -O2
+LDFLAGS ?= -Zomf -Zmap -Zbin-files -Zhigh-mem -Zargs-wild -Zargs-resp
+
 # program
-PROGRAMS = highmem highmem_g
+PROGRAMS = highmem
 
 highmem_SOURCES = highmem.c
-highmem_CFLAGS = -s -O2 -I/@unixroot/usr/include -I$(TOOLKIT)/h
-highmem_LDFLAGS = -s -Zomf -Zmap -Zbin-files -Zhigh-mem -Zargs-wild -Zargs-resp
+highmem_CFLAGS = $(CFLAGS) -I/@unixroot/usr/include -I$(TOOLKIT)/h
+highmem_LDFLAGS = $(LDFLAGS) 
 highmem_LIBS =
 highmem_DEFS =
 highmem_INCS =
-
-highmem_g_SOURCES = highmem.c
-highmem_g_CFLAGS =  -g -O0 -DDEBUG -I/@unixroot/usr/include -I$(TOOLKIT)/h
-highmem_g_LDFLAGS = -g -Zomf -Zmap -Zbin-files -Zhigh-mem -Zargs-wild -Zargs-resp
-highmem_g_LIBS =
-highmem_g_DEFS =
-highmem_g_INCS =
 
 # packaging stuffs
 PACKAGE_NAME = highmem-$(subst .,_,$(VERSION))-$(BUILD).zip
