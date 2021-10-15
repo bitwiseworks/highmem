@@ -1,7 +1,7 @@
 HighMem, a LX format 32bit DLL module 'loading above 512MB' marking utility,
-Version 1.0.1
+Version 1.0.3
 
-(C) 2012 Yuri Dario <yd@os2power.com>.
+(C) 2012-2021 Yuri Dario <yd@os2power.com>.
     Partially based on ABOVE512 (C) 2004 Takayuki 'January June' Suwa.
 
 usage: HIGHMEM [-options] {DLL module file} ...

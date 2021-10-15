@@ -1,6 +1,6 @@
 /*
 
-   Copyright 2012-20 Yuri Dario <yd@os2power.com>
+   Copyright 2012-21 Yuri Dario <yd@os2power.com>
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -84,6 +84,17 @@ int mark( char* pszModule)
 	struct o32_obj* pxObjTable;
 	static const PSZ apszObjectTypes[] = {"swappable", "permanent", "resident", "contiguous", "long lockable", "", "swappable", ""};
 	ULONG ulIndex, lLXOffset, ulExtraSize;
+	char filename[ _MAX_PATH];
+
+	/* libc runtime cannot be marked high, always skip */
+	_splitpath( pszModule, NULL, NULL, filename, NULL);
+	strlwr( filename);
+	if (strncmp( filename, "libcn", 5) == 0 
+	    || strncmp( filename, "libc0", 5) == 0) {
+		if (!quiet)
+			printf("skipping libc runtime: %s\n", pszModule);
+		return -1;
+	}
 
 	rc = DosOpen(pszModule, &hfModule, &ulWork, (ULONG)0, FILE_NORMAL,
 			OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
@@ -286,8 +297,8 @@ void usage( void)
 {
 	(void)printf("\n"
 	"HighMem, a LX format 32bit DLL module 'loading above 512MB' marking utility,\n"
-	"Version 1.0.2\n"
-	"(C) 2012-20 Yuri Dario <yd@os2power.com>.\n"
+	"Version 1.0.3\n"
+	"(C) 2012-21 Yuri Dario <yd@os2power.com>.\n"
 	"    Partially based on ABOVE512 (C) 2004 Takayuki 'January June' Suwa.\n"
 	"\n"
 	"usage: HIGHMEM [-options] {DLL module file} ...\n"
